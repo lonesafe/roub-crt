@@ -65,7 +65,6 @@ jobs:
   # 创建发布
   release:
     needs: [build-gui]
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
