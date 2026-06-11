@@ -7,9 +7,9 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/mattn/go-runewidth v0.0.24
-	github.com/pkg/term v1.1.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	go.bug.st/serial v1.3.0
 	golang.org/x/crypto v0.53.0
 	golang.org/x/term v0.44.0
 )
@@ -21,6 +21,7 @@ require (
 	github.com/charmbracelet/x/cellbuf v0.0.13-0.20250311204145-2c3ea96c31dd // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
+	github.com/creack/goselect v0.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fyne-io/mobile v0.1.2 // indirect

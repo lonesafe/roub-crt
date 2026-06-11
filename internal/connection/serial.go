@@ -5,11 +5,11 @@ import (
 	"io"
 	"sync"
 
-	"github.com/pkg/term"
+	"go.bug.st/serial"
 )
 
 type SerialConn struct {
-	Port    *term.Term
+	Port    serial.Port
 	RW      io.ReadWriter
 	mu      sync.Mutex
 	isOpen  bool
@@ -20,14 +20,8 @@ type SerialConfig struct {
 	BaudRate int
 	DataBits int
 	StopBits int
-	Parity   int
+	Parity   serial.Parity
 }
-
-const (
-	ParityNone = 0
-	ParityOdd  = 1
-	ParityEven = 2
-)
 
 func NewSerialConfig(portName string, baudRate int) *SerialConfig {
 	return &SerialConfig{
@@ -35,15 +29,19 @@ func NewSerialConfig(portName string, baudRate int) *SerialConfig {
 		BaudRate: baudRate,
 		DataBits: 8,
 		StopBits: 1,
-		Parity:   ParityNone,
+		Parity:   serial.NoParity,
 	}
 }
 
 func ConnectSerial(config *SerialConfig) (*SerialConn, error) {
-	t, err := term.Open(config.PortName,
-		term.Speed(config.BaudRate),
-		term.RawMode,
-	)
+	mode := &serial.Mode{
+		BaudRate: config.BaudRate,
+		DataBits: config.DataBits,
+		StopBits: config.StopBits,
+		Parity:   config.Parity,
+	}
+
+	t, err := serial.Open(config.PortName, mode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open serial port %s: %w", config.PortName, err)
 	}
@@ -77,40 +75,14 @@ func (s *SerialConn) Close() error {
 	return nil
 }
 
-func (s *SerialConn) SetRawMode() error {
-	return term.RawMode(s.Port)
-}
-
 func (s *SerialConn) SetBaudRate(baud int) error {
-	return term.Speed(baud)(s.Port)
+	return s.Port.SetBaudRate(baud)
 }
 
 func ListSerialPorts() ([]string, error) {
-	ports := []string{
-		"/dev/ttyUSB0",
-		"/dev/ttyUSB1",
-		"/dev/ttyUSB2",
-		"/dev/ttyUSB3",
-		"/dev/ttyS0",
-		"/dev/ttyS1",
-		"/dev/ttyS2",
-		"/dev/ttyS3",
-		"/dev/ttyACM0",
-		"/dev/ttyACM1",
-		"COM1",
-		"COM2",
-		"COM3",
-		"COM4",
+	ports, err := serial.GetPortsList()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list serial ports: %w", err)
 	}
-
-	var available []string
-	for _, port := range ports {
-		t, err := term.Open(port, term.Speed(9600))
-		if err == nil {
-			t.Close()
-			available = append(available, port)
-		}
-	}
-
-	return available, nil
+	return ports, nil
 }
