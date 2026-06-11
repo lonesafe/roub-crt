@@ -51,7 +51,10 @@ jobs:
       - name: Install GUI dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          brew install glfw3
+          xcode-select --install || true
+          brew install glfw3 pkg-config
+          echo "CGO_CFLAGS=-I$(brew --prefix glfw3)/include" >> $GITHUB_ENV
+          echo "CGO_LDFLAGS=-L$(brew --prefix glfw3)/lib" >> $GITHUB_ENV
 
       - name: Get dependencies
         run: |
