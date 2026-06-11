@@ -182,7 +182,7 @@ func (g *GUIApp) showQuickConnect() {
 		widget.NewFormItem("Baud Rate", baudSelect),
 	)
 
-	dialog.ShowForm("Quick Connect", "Connect", "Cancel", form, func(confirmed bool) {
+	dialog.NewForm("Quick Connect", "Connect", "Cancel", form, func(confirmed bool) {
 		if !confirmed {
 			return
 		}
@@ -211,7 +211,7 @@ func (g *GUIApp) showQuickConnect() {
 		}
 
 		g.connect(host, port, username, password, protocol, baudRate)
-	}, g.window)
+	}, g.window).Show()
 }
 
 func (g *GUIApp) connect(host string, port int, username, password, protocol string, baudRate int) {
@@ -355,7 +355,9 @@ func (g *GUIApp) showSessionManager() {
 		},
 	)
 
+	var selectedIdx int = -1
 	list.OnSelected = func(id int) {
+		selectedIdx = id
 		if id < len(sessions) {
 			s := sessions[id]
 			g.connect(s.Host, s.Port, s.Username, s.Password, string(s.Protocol), 115200)
@@ -367,9 +369,8 @@ func (g *GUIApp) showSessionManager() {
 	})
 
 	deleteBtn := widget.NewButton("Delete", func() {
-		selected := list.SelectedIndex()
-		if selected >= 0 && selected < len(sessions) {
-			sm.DeleteSession(sessions[selected].ID)
+		if selectedIdx >= 0 && selectedIdx < len(sessions) {
+			sm.DeleteSession(sessions[selectedIdx].ID)
 			g.showSessionManager()
 		}
 	})
@@ -417,7 +418,7 @@ func (g *GUIApp) showAddSession() {
 		widget.NewFormItem("Username", usernameEntry),
 	)
 
-	dialog.ShowForm("Add Session", "Save", "Cancel", form, func(confirmed bool) {
+	dialog.NewForm("Add Session", "Save", "Cancel", form, func(confirmed bool) {
 		if !confirmed {
 			return
 		}
@@ -438,7 +439,7 @@ func (g *GUIApp) showAddSession() {
 
 		sm.SaveSession(s)
 		dialog.ShowInformation("Success", fmt.Sprintf("Session '%s' saved", s.Name), g.window)
-	}, g.window)
+	}, g.window).Show()
 }
 
 func (g *GUIApp) showFileTransfer(s *session.Session) {
