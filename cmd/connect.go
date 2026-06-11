@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"go.bug.st/serial"
 	"roub-crt/internal/connection"
 )
 
@@ -184,8 +185,8 @@ func connectTelnet(host string) (*connection.TelnetConn, error) {
 func connectSerial(port string) (*connection.SerialConn, error) {
 	config := connection.NewSerialConfig(port, connectSerialBaud)
 	config.DataBits = connectSerialData
-	config.StopBits = connectSerialStop
-	config.Parity = connectSerialParity
+	config.StopBits = serial.StopBits(connectSerialStop)
+	config.Parity = serial.Parity(connectSerialParity)
 
 	return connection.ConnectSerial(config)
 }

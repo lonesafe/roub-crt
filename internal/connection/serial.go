@@ -9,17 +9,17 @@ import (
 )
 
 type SerialConn struct {
-	Port    serial.Port
-	RW      io.ReadWriter
-	mu      sync.Mutex
-	isOpen  bool
+	Port   serial.Port
+	RW     io.ReadWriter
+	mu     sync.Mutex
+	isOpen bool
 }
 
 type SerialConfig struct {
 	PortName string
 	BaudRate int
 	DataBits int
-	StopBits int
+	StopBits serial.StopBits
 	Parity   serial.Parity
 }
 
@@ -28,7 +28,7 @@ func NewSerialConfig(portName string, baudRate int) *SerialConfig {
 		PortName: portName,
 		BaudRate: baudRate,
 		DataBits: 8,
-		StopBits: 1,
+		StopBits: serial.OneStopBit,
 		Parity:   serial.NoParity,
 	}
 }
@@ -76,7 +76,12 @@ func (s *SerialConn) Close() error {
 }
 
 func (s *SerialConn) SetBaudRate(baud int) error {
-	return s.Port.SetBaudRate(baud)
+	return s.Port.SetMode(&serial.Mode{
+		BaudRate: baud,
+		DataBits: 8,
+		StopBits: serial.OneStopBit,
+		Parity:   serial.NoParity,
+	})
 }
 
 func ListSerialPorts() ([]string, error) {
