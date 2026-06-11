@@ -251,3 +251,57 @@ security:
 ```
 监听本地端口 → 加密隧道 → 远程转发 → 目标服务
 ```
+
+## 9. CI/CD 自动构建
+
+### 9.1 GitHub Actions 工作流
+
+文件: `.github/workflows/build.yml`
+
+| 触发条件 | 构建产物 |
+|---------|---------|
+| Push tags `v*` | CLI + GUI 多平台二进制 |
+| Push to `main` | CLI + GUI 多平台二进制 |
+| PR to `main` | 测试 + 构建验证 |
+| Manual trigger | CLI + GUI 多平台二进制 |
+
+### 9.2 构建矩阵
+
+| 平台 | CLI | GUI | 输出文件 |
+|------|-----|-----|---------|
+| Linux amd64 | ✓ | ✓ | `roub-crt`, `roub-crt-gui` |
+| Linux arm64 | ✓ | ✓ | `roub-crt`, `roub-crt-gui` |
+| Windows amd64 | ✓ | ✓ | `roub-crt.exe`, `roub-crt-gui.exe` |
+| macOS amd64 | ✓ | ✓ | `roub-crt`, `roub-crt-gui` |
+| macOS arm64 | ✓ | ✓ | `roub-crt`, `roub-crt-gui` |
+
+### 9.3 发布流程
+
+1. **版本标签**:
+   ```bash
+   git tag -a v1.0.0 -m "Release v1.0.0"
+   git push origin v1.0.0
+   ```
+
+2. **自动创建 Release**:
+   - GitHub Actions 自动构建所有平台
+   - 生成 SHA256 校验和
+   - 创建 GitHub Release 并上传 artifacts
+
+### 9.4 GoReleaser (可选)
+
+使用 `goreleaser` 替代 GitHub Actions:
+```bash
+# 安装 goreleaser
+brew install goreleaser
+
+# 快速测试
+goreleaser check
+goreleaser snapshot --clean
+
+# 正式发布
+goreleaser release --clean
+```
+
+配置: `.goreleaser.yml`
+

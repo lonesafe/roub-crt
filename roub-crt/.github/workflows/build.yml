@@ -1,0 +1,181 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.21'
+  APP_NAME: roub-crt
+
+jobs:
+  # CLI版本构建
+  build-cli:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            env: ''
+          - os: windows-latest
+            env: '.exe'
+          - os: macos-latest
+            env: ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Get dependencies
+        run: |
+          go mod download
+          go mod tidy
+
+      - name: Build CLI
+        run: |
+          mkdir -p release/${{ matrix.os }}
+          go build -ldflags="-s -w" -o release/${{ matrix.os }}/${{ env.APP_NAME }}${{ matrix.env }} .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ matrix.os }}-cli
+          path: release/${{ matrix.os }}/${{ env.APP_NAME }}${{ matrix.env }}
+          retention-days: 30
+
+  # GUI版本构建 (需要GUI标签)
+  build-gui:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            env: ''
+            gui-deps: 'libgl1-mesa-dev xorg-dev libgtk-3-dev'
+          - os: windows-latest
+            env: '.exe'
+            gui-deps: ''
+          - os: macos-latest
+            env: ''
+            gui-deps: ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install GUI dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.gui-deps }}
+
+      - name: Get dependencies
+        run: |
+          go mod download
+          go mod tidy
+
+      - name: Build GUI
+        run: |
+          mkdir -p release/${{ matrix.os }}
+          go build -tags gui -ldflags="-s -w" -o release/${{ matrix.os }}/${{ env.APP_NAME }}-gui${{ matrix.env }} .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ matrix.os }}-gui
+          path: release/${{ matrix.os }}/${{ env.APP_NAME }}-gui${{ matrix.env }}
+          retention-days: 30
+
+  # 创建发布
+  release:
+    needs: [build-cli, build-gui]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Createchecksums
+        run: |
+          cd artifacts
+          for dir in */; do
+            cd "$dir"
+            if [ -f "../../checksums.txt" ]; then
+              cat "../../checksums.txt" >> "../../checksums.txt"
+            fi
+            for f in *; do
+              if [ -f "$f" ]; then
+                sha256sum "$f" >> ../../checksums.txt
+              fi
+            done
+            cd ..
+          done
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd artifacts
+          find . -type f -name "*" -exec sha256sum {} \; > checksums.txt
+          cat checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/**/*
+            artifacts/**/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 测试
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run tests
+        run: |
+          go mod download
+          go mod tidy
+          go test -v -race -cover ./...
+
+      - name: Build verification
+        run: |
+          go build -o /dev/null .
+          go build -tags gui -o /dev/null .

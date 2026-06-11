@@ -1,0 +1,76 @@
+# .goreleaser.yml
+# GoReleaser 配置 - 用于自动发布
+# 使用方法: goreleaser release --clean
+
+project_name: roub-crt
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+builds:
+  # CLI 版本
+  - id: cli
+    dir: .
+    main: ./main.go
+    ldflags:
+      - -s -w
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    binary: "{{ .ProjectName }}"
+
+  # GUI 版本
+  - id: gui
+    dir: .
+    main: ./main.go
+    ldflags:
+      - -s -w
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    binary: "{{ .ProjectName }}-gui"
+    tags:
+      - gui
+
+archives:
+  - format: tar.gz
+    id: cli
+    builds:
+      - cli
+    files:
+      - none*
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+  - format: tar.gz
+    id: gui
+    builds:
+      - gui
+    files:
+      - none*
+    name_template: "{{ .ProjectName }}-gui_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+release:
+  github:
+    owner: ""
+    name: ""
+
+announce:
+  twitter:
+    enabled: false
