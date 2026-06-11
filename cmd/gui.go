@@ -182,11 +182,7 @@ func (g *GUIApp) showQuickConnect() {
 		widget.NewFormItem("Baud Rate", baudSelect),
 	)
 
-	dialog.NewForm("Quick Connect", "Connect", "Cancel", form, func(confirmed bool) {
-		if !confirmed {
-			return
-		}
-
+	connectBtn := widget.NewButton("Connect", func() {
 		host := hostEntry.Text
 		if host == "" {
 			dialog.ShowError(fmt.Errorf("host is required"), g.window)
@@ -211,7 +207,25 @@ func (g *GUIApp) showQuickConnect() {
 		}
 
 		g.connect(host, port, username, password, protocol, baudRate)
-	}, g.window).Show()
+		g.window.Close()
+	})
+
+	cancelBtn := widget.NewButton("Cancel", func() {
+		g.window.Close()
+	})
+
+	btnBox := widget.NewHBox(layout.NewSpacer(), connectBtn, cancelBtn)
+
+	content := fyne.NewContainerWithLayout(
+		layout.NewBorderLayout(nil, btnBox, nil, nil),
+		form,
+		btnBox,
+	)
+
+	w := g.app.NewWindow("Quick Connect")
+	w.SetContent(content)
+	w.Resize(fyne.NewSize(400, 300))
+	w.Show()
 }
 
 func (g *GUIApp) connect(host string, port int, username, password, protocol string, baudRate int) {
@@ -418,11 +432,7 @@ func (g *GUIApp) showAddSession() {
 		widget.NewFormItem("Username", usernameEntry),
 	)
 
-	dialog.NewForm("Add Session", "Save", "Cancel", form, func(confirmed bool) {
-		if !confirmed {
-			return
-		}
-
+	saveBtn := widget.NewButton("Save", func() {
 		sm, _ := session.NewSessionManager("")
 		port, _ := strconv.Atoi(portEntry.Text)
 		if port == 0 {
@@ -439,7 +449,19 @@ func (g *GUIApp) showAddSession() {
 
 		sm.SaveSession(s)
 		dialog.ShowInformation("Success", fmt.Sprintf("Session '%s' saved", s.Name), g.window)
-	}, g.window).Show()
+	})
+
+	cancelBtn := widget.NewButton("Cancel", func() {})
+
+	btnBox := widget.NewHBox(layout.NewSpacer(), saveBtn, cancelBtn)
+
+	content := fyne.NewContainerWithLayout(
+		layout.NewBorderLayout(nil, btnBox, nil, nil),
+		form,
+		btnBox,
+	)
+
+	dialog.ShowCustom("Add Session", "Close", content, g.window)
 }
 
 func (g *GUIApp) showFileTransfer(s *session.Session) {
