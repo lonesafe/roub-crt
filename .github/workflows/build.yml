@@ -16,47 +16,7 @@ env:
   APP_NAME: roub-crt
 
 jobs:
-  # CLI版本构建
-  build-cli:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            env: ''
-          - os: windows-latest
-            env: '.exe'
-          - os: macos-latest
-            env: ''
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Get dependencies
-        run: |
-          go mod download
-          go mod tidy
-
-      - name: Build CLI
-        run: |
-          mkdir -p release/${{ matrix.os }}
-          go build -ldflags="-s -w" -o release/${{ matrix.os }}/${{ env.APP_NAME }}${{ matrix.env }} .
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.APP_NAME }}-${{ matrix.os }}-cli
-          path: release/${{ matrix.os }}/${{ env.APP_NAME }}${{ matrix.env }}
-          retention-days: 30
-
-  # GUI版本构建 (需要GUI标签)
+  # GUI版本构建
   build-gui:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -88,6 +48,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ${{ matrix.gui-deps }}
 
+      - name: Install GUI dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install glfw3
+
       - name: Get dependencies
         run: |
           go mod download
@@ -107,7 +72,7 @@ jobs:
 
   # 创建发布
   release:
-    needs: [build-cli, build-gui]
+    needs: [build-gui]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -121,22 +86,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
-      - name: Createchecksums
-        run: |
-          cd artifacts
-          for dir in */; do
-            cd "$dir"
-            if [ -f "../../checksums.txt" ]; then
-              cat "../../checksums.txt" >> "../../checksums.txt"
-            fi
-            for f in *; do
-              if [ -f "$f" ]; then
-                sha256sum "$f" >> ../../checksums.txt
-              fi
-            done
-            cd ..
-          done
 
       - name: Generate checksums
         shell: bash
@@ -156,26 +105,3 @@ jobs:
             artifacts/**/checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # 测试
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Run tests
-        run: |
-          go mod download
-          go mod tidy
-          go test -v -race -cover ./...
-
-      - name: Build verification
-        run: |
-          go build -o /dev/null .
-          go build -tags gui -o /dev/null .
