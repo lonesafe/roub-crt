@@ -53,7 +53,10 @@ jobs:
         run: |
           xcode-select --install || true
           brew install glfw3 pkg-config
-          echo "CGO_CFLAGS=-I$(brew --prefix glfw3)/include" >> $GITHUB_ENV
+          mkdir -p /tmp/opengl/include/KHR
+          curl -sL https://raw.githubusercontent.com/KhronosGroup/EGL-Registry/main/api/KHR/khrplatform.h -o /tmp/opengl/include/KHR/khrplatform.h
+          curl -sL https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/main/api/GL/glcorearb.h -o /tmp/opengl/include/GL/glcorearb.h
+          echo "CGO_CFLAGS=-I$(brew --prefix glfw3)/include -I/tmp/opengl/include" >> $GITHUB_ENV
           echo "CGO_LDFLAGS=-L$(brew --prefix glfw3)/lib" >> $GITHUB_ENV
 
       - name: Get dependencies
