@@ -2,8 +2,8 @@
 
 ## 1. 项目概述
 - **产品名称**: roub-crt
-- **产品类型**: Go语言CLI终端仿真与文件传输工具
-- **核心功能**: 支持多协议远程连接(SSH/Telnet/Serial)、会话管理、文件传输、端口转发
+- **产品类型**: Go语言桌面终端仿真与文件传输工具
+- **核心功能**: 支持多协议远程连接(SSH/Telnet/Serial)、会话管理、文件传输、端口转发、图形界面
 - **目标用户**: 系统管理员、网络工程师、开发运维人员
 
 ## 2. 技术架构
@@ -12,7 +12,15 @@
 ```
 roub-crt/
 ├── cmd/
-│   └── root.go          # 根命令
+│   ├── root.go          # 根命令
+│   ├── connect.go       # 连接命令
+│   ├── session.go       # 会话管理
+│   ├── transfer.go      # 文件传输
+│   ├── tunnel.go        # 端口转发
+│   ├── key.go          # 密钥管理
+│   ├── interactive.go  # 交互式TUI
+│   ├── gui.go          # GUI主程序 (fyne框架)
+│   └── gui_stub.go     # GUI存根 (无GUI时)
 ├── internal/
 │   ├── config/          # 配置管理
 │   ├── session/         # 会话管理
@@ -34,12 +42,17 @@ roub-crt/
 ```
 
 ### 2.2 依赖包
+- fyne.io/fyne - 跨平台GUI框架
 - github.com/spf13/cobra - CLI框架
 - github.com/spf13/viper - 配置管理
-- golang.org/x/crypto - 加密算法(AES, Twofish, RSA, DSA, ECDSA)
+- golang.org/x/crypto - 加密算法(AES, Twofish, RSA, ECDSA)
 - github.com/pkg/term - 终端操作
 - github.com/AlecAivazis/survey/v2 - 交互式提示
 - github.com/charmbracelet/lipgloss - 终端样式
+
+### 2.3 构建模式
+- **CLI模式**: `go build` (默认)
+- **GUI模式**: `go build -tags gui` (需要OpenGL/X11开发库)
 
 ## 3. 功能规格
 

@@ -18,6 +18,15 @@ file transfer, port forwarding, and secure encrypted connections.`,
 	Version: "1.0.0",
 }
 
+var guiCmd = &cobra.Command{
+	Use:   "gui",
+	Short: "Launch GUI mode",
+	Long:  `Launch roub-crt with graphical user interface`,
+	Run: func(cmd *cobra.Command, args []string) {
+		RunGUI()
+	},
+}
+
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -27,4 +36,5 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is ~/.roub-crt/config.yaml)")
+	rootCmd.AddCommand(guiCmd)
 }
