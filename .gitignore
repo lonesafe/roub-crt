@@ -1,1 +1,34 @@
+# Binaries
+roub-crt
+roub-crt.exe
+roub-crt-gui
+roub-crt-gui.exe
+*.exe
+*.dmg
+*.AppImage
 
+# Release
+release/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/
+*.test
+coverage.txt
+
+# Logs
+*.log
+
+# Temporary
+tmp/
+temp/
