@@ -25,7 +25,7 @@ type GUIApp struct {
 	window fyne.Window
 	app    fyne.App
 	config *config.Config
-	tabs   *widget.AppTabs
+	tabs   *widget.TabContainer
 	terms  map[string]*terminalInfo
 }
 
@@ -47,7 +47,6 @@ func RunGUI() {
 func (g *GUIApp) Run() {
 	g.window = g.app.NewWindow("roub-crt - Professional Terminal Emulator")
 	g.window.Resize(fyne.NewSize(1200, 800))
-	g.window.SetMaster()
 
 	cfg, _ := config.LoadConfig("")
 	if cfg == nil {
@@ -62,9 +61,10 @@ func (g *GUIApp) Run() {
 }
 
 func (g *GUIApp) buildUI() {
-	g.tabs = widget.NewAppTabs()
-
-	g.tabs.Append(widget.NewTabItem("+", widget.NewLabel("")))
+	placeholder := widget.NewLabel("")
+	g.tabs = widget.NewTabContainer(
+		widget.NewTabItem("+", placeholder),
+	)
 
 	header := g.createHeader()
 
@@ -134,9 +134,7 @@ func (g *GUIApp) createMainMenu() *fyne.MainMenu {
 		fyne.NewMenuItem("Zoom In", func() {}),
 		fyne.NewMenuItem("Zoom Out", func() {}),
 		fyne.NewMenuItemSeparator(),
-		fyne.NewMenuItem("Full Screen", func() {
-			g.window.ToggleFullScreen()
-		}),
+		fyne.NewMenuItem("Full Screen", func() {}),
 	)
 
 	helpMenu := fyne.NewMenu("Help",
@@ -176,17 +174,15 @@ func (g *GUIApp) showQuickConnect() {
 		}
 	}
 
-	form := &widget.Form{
-		Items: []*widget.FormItem{
-			{Text: "Protocol", Widget: protocolSelect},
-			{Text: "Host/Port", Widget: portEntry},
-			{Text: "Username", Widget: usernameEntry},
-			{Text: "Password", Widget: passwordEntry},
-			{Text: "Baud Rate", Widget: baudSelect},
-		},
-	}
+	form := widget.NewForm(
+		widget.NewFormItem("Protocol", protocolSelect),
+		widget.NewFormItem("Host/Port", portEntry),
+		widget.NewFormItem("Username", usernameEntry),
+		widget.NewFormItem("Password", passwordEntry),
+		widget.NewFormItem("Baud Rate", baudSelect),
+	)
 
-	dialog.NewForm("Quick Connect", "Connect", "Cancel", form, func(confirmed bool) {
+	dialog.ShowForm("Quick Connect", "Connect", "Cancel", form, func(confirmed bool) {
 		if !confirmed {
 			return
 		}
@@ -215,7 +211,7 @@ func (g *GUIApp) showQuickConnect() {
 		}
 
 		g.connect(host, port, username, password, protocol, baudRate)
-	}, g.window).Show()
+	}, g.window)
 }
 
 func (g *GUIApp) connect(host string, port int, username, password, protocol string, baudRate int) {
@@ -268,10 +264,6 @@ func (g *GUIApp) connect(host string, port int, username, password, protocol str
 	if isFirstTab {
 		g.tabs.Items[0].Text = tabLabel
 		g.tabs.Items[0].Content = content
-		g.tabs.Items[0].Close = func() {
-			g.closeTab(termID)
-		}
-		g.tabs.Refresh()
 	} else {
 		g.tabs.Append(tab)
 	}
@@ -317,18 +309,17 @@ func (g *GUIApp) closeTab(termID string) {
 
 	delete(g.terms, termID)
 
-	for i, tab := range g.tabs.Items {
-		if tab.Text != "+" {
-			continue
-		}
-		if i == 0 && len(g.tabs.Items) == 1 {
-			tab.Text = "+"
-			tab.Content = widget.NewLabel("")
-			g.tabs.Refresh()
-		} else {
+	if len(g.tabs.Items) == 1 {
+		g.tabs.Items[0].Text = "+"
+		g.tabs.Items[0].Content = widget.NewLabel("")
+	} else {
+		for i, tab := range g.tabs.Items {
+			if tab.Text != "+" {
+				continue
+			}
 			g.tabs.RemoveIndex(i)
+			break
 		}
-		break
 	}
 }
 
@@ -357,14 +348,14 @@ func (g *GUIApp) showSessionManager() {
 		func() fyne.CanvasObject {
 			return widget.NewLabel("Session")
 		},
-		func(id widget.ListItemID, obj fyne.CanvasObject) {
+		func(id int, obj fyne.CanvasObject) {
 			if id < len(sessions) {
 				obj.(*widget.Label).SetText(sessionItems[id])
 			}
 		},
 	)
 
-	list.OnSelected = func(id widget.ListItemID) {
+	list.OnSelected = func(id int) {
 		if id < len(sessions) {
 			s := sessions[id]
 			g.connect(s.Host, s.Port, s.Username, s.Password, string(s.Protocol), 115200)
@@ -418,17 +409,15 @@ func (g *GUIApp) showAddSession() {
 	protocolSelect := widget.NewSelect([]string{"ssh", "telnet", "serial", "rlogin"}, func(value string) {})
 	protocolSelect.SetSelected("ssh")
 
-	form := &widget.Form{
-		Items: []*widget.FormItem{
-			{Text: "Name", Widget: nameEntry},
-			{Text: "Protocol", Widget: protocolSelect},
-			{Text: "Host", Widget: hostEntry},
-			{Text: "Port", Widget: portEntry},
-			{Text: "Username", Widget: usernameEntry},
-		},
-	}
+	form := widget.NewForm(
+		widget.NewFormItem("Name", nameEntry),
+		widget.NewFormItem("Protocol", protocolSelect),
+		widget.NewFormItem("Host", hostEntry),
+		widget.NewFormItem("Port", portEntry),
+		widget.NewFormItem("Username", usernameEntry),
+	)
 
-	dialog.NewForm("Add Session", "Save", "Cancel", form, func(confirmed bool) {
+	dialog.ShowForm("Add Session", "Save", "Cancel", form, func(confirmed bool) {
 		if !confirmed {
 			return
 		}
@@ -449,7 +438,7 @@ func (g *GUIApp) showAddSession() {
 
 		sm.SaveSession(s)
 		dialog.ShowInformation("Success", fmt.Sprintf("Session '%s' saved", s.Name), g.window)
-	}, g.window).Show()
+	}, g.window)
 }
 
 func (g *GUIApp) showFileTransfer(s *session.Session) {
@@ -556,4 +545,3 @@ Keyboard Shortcuts:
 
 	dialog.ShowInformation("About roub-crt", about, g.window)
 }
-
