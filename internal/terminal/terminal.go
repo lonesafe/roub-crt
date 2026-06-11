@@ -454,7 +454,7 @@ func (p *PTY) HandleResize(signals chan os.Signal) {
 				setSize(int(p.Master.Fd()), width, height)
 			}
 		case sig := <-signals:
-			if sig == syscall.SIGWINCH {
+			if isResizeSignal(sig) {
 				width, height, _ := getSize(int(p.Master.Fd()))
 				p.Terminal.Resize(width, height)
 				setSize(int(p.Master.Fd()), width, height)
@@ -485,7 +485,7 @@ func HandleTerminal(resizeWidth, resizeHeight int, input io.Reader, output io.Wr
 	_ = NewTerminal(width, height)
 
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGWINCH)
+	signal.Notify(signals, getResizeSignal()...)
 
 	pty, err := NewPTY(width, height)
 	if err != nil {
@@ -539,4 +539,20 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// getResizeSignal returns the OS signal(s) used to notify terminal resize events.
+// SIGWINCH is only available on Unix-like systems; Windows has no equivalent.
+func getResizeSignal() []os.Signal {
+	return resizeSignals
+}
+
+// isResizeSignal reports whether the given signal indicates a terminal resize event.
+func isResizeSignal(sig os.Signal) bool {
+	for _, s := range resizeSignals {
+		if sig == s {
+			return true
+		}
+	}
+	return false
 }
